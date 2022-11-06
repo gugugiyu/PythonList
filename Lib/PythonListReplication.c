@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdarg.h>
-#include "./PythonListReplication.h"
+#include ".\PythonListReplication.h"
 
 
 list_element* findIndex(list** arg_list, const int pos){
