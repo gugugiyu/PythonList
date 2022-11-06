@@ -23,6 +23,9 @@
 #define head(list, type) addIndex(list, type->data, type->size, 0, type->mode);
 #define insert(list, type, pos) addIndex(list, type->data, type->size, pos, type->mode);
 
+#define index(list, type) findData(list, type, 0);
+#define indexOffset(list, type, offset) findData(list, type, offset);
+
 #define len(list) list != NULL ? list->size : 0
 #define clear(list) clearList(list);
 
@@ -33,6 +36,7 @@
 #define getHead(list) findIndex(list, 0);
 #define getLast(list) findIndex(list, -1);
 #define getIndex(list, pos) findIndex(list, pos);
+
 
 typedef struct list_element{
     void*                   data;
@@ -55,14 +59,16 @@ typedef struct list{
 
 
 int                         addIndex(list **list, const void* data, const size_t size, const int pos, const int mode);
-int                         makeList(list ** list, ...);
+void                        makeList(list ** list, ...);
 int                         removeIndex(list **list, const int pos);
 data*                       parseData(const int size, void* data, const int mode);
 void                        reverseList(list **list);
-list_element*               findIndex(list **list, const int pos);
+data*                       findIndex(list **list, const int pos);
 void                        modifyIndex(list **list, data* data, const int pos);
 void                        clearList(list **list);
-void                        freeListElement(list_element *root);
 void                        print(list **list, const int step);
-
+int                         findData(list **list, const data* data, const int offset);
+int                         delete(list** arg_list, const int pos);
+static void                 freeListElement(list_element *root);
+static int                  iterateFunc(list_element *iterator, const data* data, const int offset);
 #endif

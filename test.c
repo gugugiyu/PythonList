@@ -20,8 +20,13 @@ int main(){
     append(&list[1], parseData(sizeof(double), &b, __DOUBLE__));
     head(&list[1], parseData(sizeof(double), &b, __DOUBLE__));
 
+    popLast(&list[0]);
+
 
     print(&list[0], 1);
     print(&list[1], 1);
+    
+    int idx = indexOffset(&list[0], parseData(strlen(str) + 1, str, __STRING__), 3);
+    printf("The index of %s is %d\n", str, idx);
     return 0;
 }

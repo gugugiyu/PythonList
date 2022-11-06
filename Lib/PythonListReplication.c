@@ -5,8 +5,98 @@
 #include <stdarg.h>
 #include ".\PythonListReplication.h"
 
+/**
+ * @brief The complement function for findData, performing comparing of indices
+ * 
+ * @param iterator The iterator passed by findData after adjusted to the unoffset part
+ * @param data The given data
+ * @param offset The previous offset, working as accumulative element for return value
+ * @return int On success, the function will return the index of the given data, else -1 is return if error
+ */
 
-list_element* findIndex(list** arg_list, const int pos){
+static int iterateFunc(list_element *iterator, const data* data, const int offset){
+    int counter = offset;
+
+    while (iterator != NULL){
+        if (iterator->mode == data->mode){
+            if (data->mode == __STRING__){
+                if (!strcmp((char*)data->data, (char*)iterator->data))
+                    return counter;
+            }else{
+                int ret = memcmp(data->data, iterator->data, iterator->size);
+
+                if (!ret)
+                    return counter;
+            }
+        }
+        counter++;
+        iterator = iterator->next;
+    }
+    return -1;
+}
+
+/**
+ * @brief This function is a complement for the clearList function, clear the root in detail
+ * 
+ * @param root The root passed by the clearList function
+ */
+void freeListElement(list_element *root){
+    list_element *iterator;
+    
+    while (root != NULL){
+        iterator = root;
+        root = root->next;
+
+        free(iterator->data);
+        free(iterator);
+    }
+
+    root = NULL;
+}
+/**
+ * @brief This function will find the index of a given data structure which is inputted through arguments
+ * 
+ * @param arg_list The pointer to the list of checking
+ * @param data The given data
+ * @param offset The offset of checking process, the iterator will skipped to the unoffset part
+ * @return int On success, the function will return the index of the given data, else -1 is return if error
+ */
+int findData(list ** arg_list, const data* data, const int offset){
+    if (data == NULL || (data->mode < 0 || data->mode > 12)){
+        printf("Data is null or invalid mode!\n");
+        goto fail;
+    }
+
+    if (offset < 0 || offset >= (*arg_list)->size){
+        printf("Invalid offset, offset value larger than the size of list!\n");
+        goto fail;
+    }
+
+    list_element *iterator = (*arg_list)->root;
+
+    int offsetCount = 0;
+    while (iterator != NULL && offsetCount < offset){
+        iterator = iterator->next;
+        offsetCount++;
+    }
+
+    if (!iterator)
+        goto fail;
+
+    return iterateFunc(iterator, data, offset);
+    
+    fail:
+    return -1;
+}
+/**
+ * @brief This function will return the data structure based on the given index
+ * 
+ * @param arg_list The pointer to the list of checking
+ * @param pos The position of index
+ * @return data* On sucess, the pointer to this data structure will be returned, else NULL will be returned
+ */
+
+data* findIndex(list** arg_list, const int pos){
     if (*arg_list == NULL){
         printf("List is clear, try to add more elements (getIndex)\n");
         goto fail;
@@ -14,7 +104,7 @@ list_element* findIndex(list** arg_list, const int pos){
         list_element* iterator = (*arg_list)->root;
 
         if (iterator->next == NULL){
-            return iterator;
+            return parseData(iterator->size, iterator->data, iterator->mode);
         }else{
             if (pos < 0){
                 while (iterator->next != NULL)
@@ -28,12 +118,21 @@ list_element* findIndex(list** arg_list, const int pos){
                 }
             }
         }
-        return iterator;
+        return parseData(iterator->size, iterator->data, iterator->mode);
     }
     fail:
     return NULL;
 
 }
+
+/**
+ * @brief This function will parse the given content into the data structure
+ * 
+ * @param size The total size of the content (must be converted in bytes)
+ * @param content The void pointer to the given content
+ * @param mode The data type (should be setted with defined macro) of the content
+ * @return data* On sucess, the pointer to this data structure will be returned, else NULL will be returned
+ */
 
 data* parseData(const int size, void* content, const int mode){
     data* ret = (data*)malloc(sizeof(data));
@@ -56,7 +155,13 @@ data* parseData(const int size, void* content, const int mode){
     return NULL;
 }
 
-int makeList(list** arg_list, ...){
+/**
+ * @brief This function will add multiple data structure into the list (it is encouraged to used with simultanenous insertion, like initialization)
+ * 
+ * @param arg_list The pointer to the list of checking
+ * @param ... Data structures, must be ended with macro "__LIST_END__"
+ */
+void makeList(list** arg_list, ...){
     va_list list_va;
 
     va_start(list_va, arg_list);
@@ -73,25 +178,26 @@ int makeList(list** arg_list, ...){
     va_end(list_va);   
 }
 
+/**
+ * @brief This function will free the whole list
+ * 
+ * @param arg_list The pointer to the list to be freed
+ */
 void clearList(list **arg_list){
     freeListElement((*arg_list)->root);
     free(*arg_list);
     *arg_list = NULL;
 }
 
-void freeListElement(list_element *root){
-    list_element *iterator;
-    
-    while (root != NULL){
-        iterator = root;
-        root = root->next;
 
-        free(iterator->data);
-        free(iterator);
-    }
 
-    root = NULL;
-}
+/**
+ * @brief This function will delete a list_element structure at a given index
+ * 
+ * @param arg_list The pointer to the list to be deleted
+ * @param pos The given index to the list_element structure to be deleted. Negative values are treated as end of list;
+ * @return int On success, the function returns 1, else -1 will be returned
+ */
 
 int delete(list** arg_list, const int pos){
     
@@ -138,9 +244,9 @@ int delete(list** arg_list, const int pos){
             (*arg_list)->size--;
         }
     }
-    return EXIT_SUCCESS;
+    return 1;
     fail:
-    return EXIT_FAILURE;
+    return -1;
 
 }
 
