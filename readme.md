@@ -7,7 +7,7 @@ and want to experience the same type of data structure in Python while coding C.
 
 
 
-## Acknowledgements
+## Prerequisities
 
     Since the syntax of the replicated list aren't perfectly identical to the Python language,
     there isn't any prerequisites to use the library. However, it's encouraged to have the basic
