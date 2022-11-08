@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <stdarg.h>
 #include ".\PythonListReplication.h"
@@ -13,7 +12,6 @@
  * @param offset The previous offset, working as accumulative element for return value
  * @return int On success, the function will return the index of the given data, else -1 is return if error
  */
-
 static int iterateFunc(list_element *iterator, const data* data, const int offset){
     int counter = offset;
 
@@ -88,6 +86,7 @@ int findData(list ** arg_list, const data* data, const int offset){
     fail:
     return -1;
 }
+
 /**
  * @brief This function will return the data structure based on the given index
  * 
@@ -95,7 +94,6 @@ int findData(list ** arg_list, const data* data, const int offset){
  * @param pos The position of index
  * @return data* On sucess, the pointer to this data structure will be returned, else NULL will be returned
  */
-
 data* findIndex(list** arg_list, const int pos){
     if (*arg_list == NULL){
         printf("List is clear, try to add more elements (getIndex)\n");
@@ -133,8 +131,12 @@ data* findIndex(list** arg_list, const int pos){
  * @param mode The data type (should be setted with defined macro) of the content
  * @return data* On sucess, the pointer to this data structure will be returned, else NULL will be returned
  */
-
 data* parseData(const int size, void* content, const int mode){
+    if (mode < 0 || mode > 12){
+        printf("Invalid mode, try to use defined macro instead!\n");
+        goto fail;
+    }
+
     data* ret = (data*)malloc(sizeof(data));
     
     ret->size = size;
@@ -198,7 +200,6 @@ void clearList(list **arg_list){
  * @param pos The given index to the list_element structure to be deleted. Negative values are treated as end of list;
  * @return int On success, the function returns 1, else -1 will be returned
  */
-
 int delete(list** arg_list, const int pos){
     
     if (*arg_list == NULL){
@@ -250,6 +251,16 @@ int delete(list** arg_list, const int pos){
 
 }
 
+/**
+ * @brief This function will add a new node based on the given index
+ * 
+ * @param arg_list The pointer to the list to be inserted
+ * @param value The pointer to the value
+ * @param size The size of the value
+ * @param pos The position to be added, input negative value to add at the end
+ * @param data_type The defined macro of data_type
+ * @return int On sucesss, 0 will be returned, else 1 will be returned if error
+ */
 int addIndex(list** arg_list, const void* value, const size_t size, const int pos, const int data_type){
     if (data_type < 0 || data_type > 12){
         printf("Invalid data type, try to use defined macro instead!\n");
@@ -294,7 +305,6 @@ int addIndex(list** arg_list, const void* value, const size_t size, const int po
             while(iterator->next != NULL)
                 iterator = iterator->next;
 
-              
             iterator->next = new_list_element;
             new_list_element->next = NULL;
         }else{
@@ -318,6 +328,12 @@ int addIndex(list** arg_list, const void* value, const size_t size, const int po
     return EXIT_FAILURE;
 }
 
+/**
+ * @brief This built-in print function will print out the list, bypass error and custom input type
+ * 
+ * @param arg_list The pointer to the list to be printed
+ * @param step The iteration cycles 
+ */
 void print(list **arg_list, const int step){
     if(*arg_list == NULL){
         printf("[]\n");
@@ -370,10 +386,10 @@ void print(list **arg_list, const int step){
                 printf("%s", ((char*)iterator->data));
                 break;
             case __CUSTOM__:
-                printf("CUSTOM ");
+                printf("CUSTOM");
                 break;
             default:
-                printf("ERROR ");
+                printf("ERROR");
         }
 
         for (int i = 0; i < step; i++){

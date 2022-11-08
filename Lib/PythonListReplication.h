@@ -26,6 +26,8 @@
 #define index(list, type) findData(list, type, 0);
 #define indexOffset(list, type, offset) findData(list, type, offset);
 
+#define byte(data) sizeof(data);
+
 #define len(list) list != NULL ? list->size : 0
 #define clear(list) clearList(list);
 
@@ -41,15 +43,14 @@
 typedef struct list_element{
     void*                   data;
     size_t                  size;
-    struct list_element*    next;
-    int                     mode;
-    
+    int                 mode : 5;
+    struct list_element*    next;    
 }list_element;
 
 typedef struct data{
     void*                   data;
     size_t                  size;
-    int                     mode;
+    int                 mode : 5;
 }data;
 
 typedef struct list{
