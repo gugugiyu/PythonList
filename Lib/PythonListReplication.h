@@ -1,3 +1,14 @@
+/**
+ * @file PythonListReplication.h
+ * @author MagicExists (nguyen121107@gmail.com)
+ * @brief https://github.com/gugugiyu/PythonList
+ * @version 1.0
+ * @date 2022-11-09
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #ifndef PYTHON_LIST_REPLICATION_H
@@ -19,25 +30,29 @@
 
 #define __LIST_END__        NULL
 
-#define append(list, type) addIndex(list, type->data, type->size, -1, type->mode);
-#define head(list, type) addIndex(list, type->data, type->size, 0, type->mode);
-#define insert(list, type, pos) addIndex(list, type->data, type->size, pos, type->mode);
+#define MAX_SIZE_BUFFER_SHORT 257
+#define MAX_SIZE_BUFFER_MEDIUM 513
+#define MAX_SIZE_BUFFER_LARGE 1025
 
-#define index(list, type) findData(list, type, 0);
-#define indexOffset(list, type, offset) findData(list, type, offset);
+#define append(list, type) addIndex(list, type->data, type->size, -1, type->mode)
+#define head(list, type) addIndex(list, type->data, type->size, 0, type->mode)
+#define insert(list, type, pos) addIndex(list, type->data, type->size, pos, type->mode)
 
-#define byte(data) sizeof(data);
+#define index(list, type) findData(list, type, 0)
+#define indexOffset(list, type, offset) findData(list, type, offset)
 
-#define len(list) list != NULL ? list->size : 0
-#define clear(list) clearList(list);
+#define byte(data) sizeof(data)
 
-#define popHead(list) delete(list, 0);
-#define popLast(list) delete(list, -1);
-#define popIndex(list, pos) delete(list, pos);
+#define len(list) *list != NULL ? (*list)->size : 0
+#define clear(list) clearList(list)
 
-#define getHead(list) findIndex(list, 0);
-#define getLast(list) findIndex(list, -1);
-#define getIndex(list, pos) findIndex(list, pos);
+#define popHead(list) delete(list, 0)
+#define popLast(list) delete(list, -1)
+#define popIndex(list, pos) delete(list, pos)
+
+#define getHead(list) findIndex(list, 0)
+#define getLast(list) findIndex(list, -1)
+#define getIndex(list, pos) findIndex(list, pos)
 
 
 typedef struct list_element{
@@ -45,19 +60,20 @@ typedef struct list_element{
     size_t                  size;
     int                 mode : 5;
     struct list_element*    next;    
-}list_element;
+}__attribute__((packed, aligned(1))) list_element;
 
 typedef struct data{
     void*                   data;
     size_t                  size;
     int                 mode : 5;
-}data;
-
-typedef struct list{
+}__attribute__((packed, aligned(1))) data;
+typedef struct{
     struct list_element*    root;
     size_t                  size;
 }list;
 
+static void                 logProcess(int idx, char* funcName);
+static void                 printFileLogEnd();
 
 int                         addIndex(list **list, const void* data, const size_t size, const int pos, const int mode);
 void                        makeList(list ** list, ...);

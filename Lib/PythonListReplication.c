@@ -2,8 +2,97 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <dirent.h>
+#include <time.h>
 #include ".\PythonListReplication.h"
 
+
+
+void __attribute__((destructor)) static printFileLogEnd();
+
+/**
+ * @brief The lookup table for error
+ * 
+ */
+const char *table[] = {
+    "Data parameter is null!",
+    "Invalid mode, value either negative or exceeded 12!",
+    "Invalid offset, offset value larger than the size of list!",
+    "List is clear, try to add more elements!",
+    "Failed to allocate memory!",
+    "Invalid step, step musn't be 0!",
+    "Warning: The list has no element, most function don't work on a clear list!"
+};
+
+/**
+ * @brief This function will be the destructor of the log file report
+ * 
+ */
+static void printFileLogEnd(){
+    FILE* openFile = fopen(".\\Lib\\log.txt", "a+");
+
+    fflush(openFile);
+    fprintf(openFile, "-----SECTION END-----\n");
+    fclose(openFile);
+}
+
+/**
+ * @brief This function will report the log file to log.txt
+ * 
+ * @param idx The idx of the error based on the looked up table
+ * @param funcName The function whose reporting the error
+ */
+static void logProcess(int idx, char* funcName){
+    DIR*                        logName    = NULL; //The directory of the files
+    struct dirent*              direntData = NULL; // The specific data about the current file
+    FILE*                       openFile   = NULL; // File pointer to open the current file
+    static char*                log_name   = NULL; // Static pointer to retain the value of the current file name
+    static int                  hasTitle   = 0; //Check if the title of the file is printed or not
+    
+    if (!log_name && !hasTitle){
+        logName = opendir(".");
+
+        while ((direntData = readdir(logName))){
+            //Check if the file extension is c file or not
+            if(strstr(direntData->d_name, ".c")){
+                openFile = fopen(direntData->d_name, "r+");
+
+                if (openFile){
+                    char buffer[MAX_SIZE_BUFFER_SHORT];
+
+                    fgets(buffer, sizeof(buffer), openFile);
+                    if (!strcmp(buffer, "#define FILE_LOG_NAME 0\r\n")){
+                        log_name = (char*)malloc(strlen(direntData->d_name) + 1);
+                        strncpy(log_name, direntData->d_name, strlen(direntData->d_name));
+                    }
+                }
+            }
+        } 
+    }
+    //Adding current log
+    openFile = fopen(".\\Lib\\log.txt", "a+");
+    if (openFile){
+        if (log_name && !hasTitle){
+            fflush(openFile);
+            fprintf(openFile, "This is the log of: [%s]\n", log_name);
+            hasTitle = 1;
+        }
+
+        time_t curTime;
+        struct tm *formattedTime = NULL;
+
+        time(&curTime);
+        formattedTime = localtime(&curTime);
+
+        fflush(openFile);
+        fprintf(openFile, "[%d:%d:%d] In function \"%s\": %s\n", formattedTime->tm_hour, formattedTime->tm_min, formattedTime->tm_sec, funcName, table[idx]);
+    }
+
+    //Freeing memory
+    fclose(openFile);
+    closedir(logName);
+    free(direntData);
+}
 /**
  * @brief The complement function for findData, performing comparing of indices
  * 
@@ -14,9 +103,12 @@
  */
 static int iterateFunc(list_element *iterator, const data* data, const int offset){
     int counter = offset;
-
     while (iterator != NULL){
+        printf("%d\n", data->mode);
         if (iterator->mode == data->mode){
+            if (data->mode == __CUSTOM__)
+                continue;
+
             if (data->mode == __STRING__){
                 if (!strcmp((char*)data->data, (char*)iterator->data))
                     return counter;
@@ -48,7 +140,6 @@ void freeListElement(list_element *root){
         free(iterator->data);
         free(iterator);
     }
-
     root = NULL;
 }
 /**
@@ -60,13 +151,18 @@ void freeListElement(list_element *root){
  * @return int On success, the function will return the index of the given data, else -1 is return if error
  */
 int findData(list ** arg_list, const data* data, const int offset){
-    if (data == NULL || (data->mode < 0 || data->mode > 12)){
-        printf("Data is null or invalid mode!\n");
+    if (data == NULL){
+        logProcess(0, "findData");
+        goto fail;
+    }
+    
+    if (data->mode < 0 || data->mode > 12){
+        logProcess(1, "findData");
         goto fail;
     }
 
     if (offset < 0 || offset >= (*arg_list)->size){
-        printf("Invalid offset, offset value larger than the size of list!\n");
+        logProcess(2, "findData");
         goto fail;
     }
 
@@ -96,7 +192,7 @@ int findData(list ** arg_list, const data* data, const int offset){
  */
 data* findIndex(list** arg_list, const int pos){
     if (*arg_list == NULL){
-        printf("List is clear, try to add more elements (getIndex)\n");
+        logProcess(3, "findIndex");
         goto fail;
     }else{
         list_element* iterator = (*arg_list)->root;
@@ -133,7 +229,12 @@ data* findIndex(list** arg_list, const int pos){
  */
 data* parseData(const int size, void* content, const int mode){
     if (mode < 0 || mode > 12){
-        printf("Invalid mode, try to use defined macro instead!\n");
+        logProcess(1, "parseData");
+        goto fail;
+    }
+
+    if (content == NULL){
+        logProcess(0, "parseData");
         goto fail;
     }
 
@@ -145,7 +246,7 @@ data* parseData(const int size, void* content, const int mode){
     if(ret->data)
         memcpy(ret->data, content, size);
     else{
-        printf("Failed to allocate memory! (Initialize process)\n");
+        logProcess(4, "parseData");
         goto fail;
     }
     
@@ -191,8 +292,6 @@ void clearList(list **arg_list){
     *arg_list = NULL;
 }
 
-
-
 /**
  * @brief This function will delete a list_element structure at a given index
  * 
@@ -203,7 +302,7 @@ void clearList(list **arg_list){
 int delete(list** arg_list, const int pos){
     
     if (*arg_list == NULL){
-        printf("List is clear, try to add elements! (delete)\n");
+        logProcess(0, "delete");
         goto fail;
     }else{
         list_element* iterator = (*arg_list)->root;
@@ -240,7 +339,6 @@ int delete(list** arg_list, const int pos){
                 iterator->next = NULL;
                 iterator->next = buffer;
 
-
             }
             (*arg_list)->size--;
         }
@@ -263,9 +361,15 @@ int delete(list** arg_list, const int pos){
  */
 int addIndex(list** arg_list, const void* value, const size_t size, const int pos, const int data_type){
     if (data_type < 0 || data_type > 12){
-        printf("Invalid data type, try to use defined macro instead!\n");
+        logProcess(1, "addIndex");
         goto fail;
     }
+
+    if (value == NULL){
+        logProcess(0, "addIndex");
+        goto fail;
+    }
+
     if ((*arg_list)== NULL){
         //Initialize the list
         *arg_list         = (list*)malloc(sizeof(list));
@@ -276,7 +380,7 @@ int addIndex(list** arg_list, const void* value, const size_t size, const int po
         if ((*arg_list)->root->data)
             memcpy((*arg_list)->root->data, value, size);
         else{
-            printf("Failed to allocate memory! (Initialize process)\n");
+            logProcess(4, "addIndex");
             goto fail;
         }
         (*arg_list)->root->size = size;
@@ -293,7 +397,7 @@ int addIndex(list** arg_list, const void* value, const size_t size, const int po
         if (new_list_element->data)
             memcpy(new_list_element->data, value, size);
         else{
-            printf("Failed to allocate memory (insertion process)!\n");
+            logProcess(4, "addIndex");
             goto fail;
         }
 
@@ -336,12 +440,15 @@ int addIndex(list** arg_list, const void* value, const size_t size, const int po
  */
 void print(list **arg_list, const int step){
     if(*arg_list == NULL){
-        printf("[]\n");
+        logProcess(6, "print");
+        printf("[]");
         return;
     }
 
+    printf("step = %d\n", step);
+
     if (!step){
-        printf("Invalid step, step musn't be 0");
+        logProcess(5, "print");
         return;
     }
     

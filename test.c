@@ -8,6 +8,7 @@ struct new_data{
     float d;
     char *c;
 };
+
 int main(){
     list* my_list = NULL;
 
@@ -27,9 +28,10 @@ int main(){
     printf("The size of the list is = %d\n", len(my_list));
 
     print(&my_list, 1);
-    
-    clear(&my_list);
 
-    printf("%d %d %d\n", sizeof(list), sizeof(list_element), sizeof(data));
+    printf("%d\n", indexOffset(&my_list, parseData(strlen("This is a string") + 1, "This is a string", __STRING__), 999));
+    printf("%d\n", indexOffset(&my_list, NULL, 0));
+
+    
     return 0;
 }

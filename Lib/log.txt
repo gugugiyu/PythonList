@@ -1,0 +1,17 @@
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "findData": Data parameter is null!
+[20:16:1] In function "delete": Data parameter is null!
+[20:16:1] In function "delete": Data parameter is null!
+[20:16:1] In function "delete": Data parameter is null!
+[20:16:1] In function "delete": Data parameter is null!
+[20:16:1] In function "delete": Data parameter is null!
+[20:16:1] In function "print": Warning: The list has no element, most function don't work on a clear list!
+-----SECTION END-----
