@@ -1,0 +1,8 @@
+# ignore ALL .log files
+*.log
+
+# ignore ALL .o files
+*.o
+
+# ignore external private library
+/curl

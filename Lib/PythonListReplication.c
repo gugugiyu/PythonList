@@ -5,15 +5,14 @@
 #include <dirent.h>
 #include <time.h>
 #include ".\PythonListReplication.h"
-
-
-
-void __attribute__((destructor)) static printFileLogEnd();
-
 /**
  * @brief The lookup table for error
  * 
  */
+
+int LOG_SPECIFIED_SUCCESSFULLY = 0;
+void __attribute__((destructor)) static printFileLogEnd();
+
 const char *table[] = {
     "Data parameter is null!",
     "Invalid mode, value either negative or exceeded 12!",
@@ -29,11 +28,14 @@ const char *table[] = {
  * 
  */
 static void printFileLogEnd(){
+
+    if (LOG_SPECIFIED_SUCCESSFULLY){
     FILE* openFile = fopen(".\\Lib\\log.txt", "a+");
 
     fflush(openFile);
     fprintf(openFile, "-----SECTION END-----\n");
     fclose(openFile);
+    }
 }
 
 /**
@@ -48,7 +50,7 @@ static void logProcess(int idx, char* funcName){
     FILE*                       openFile   = NULL; // File pointer to open the current file
     static char*                log_name   = NULL; // Static pointer to retain the value of the current file name
     static int                  hasTitle   = 0; //Check if the title of the file is printed or not
-    
+
     if (!log_name && !hasTitle){
         logName = opendir(".");
 
@@ -58,7 +60,8 @@ static void logProcess(int idx, char* funcName){
                 openFile = fopen(direntData->d_name, "r+");
 
                 if (openFile){
-                    char buffer[MAX_SIZE_BUFFER_SHORT];
+                //Defined macro for configurating the destructor
+                    char buffer[MAX_SIZE_BUFFER_SHORT];  
 
                     fgets(buffer, sizeof(buffer), openFile);
                     if (!strcmp(buffer, "#define FILE_LOG_NAME 0\r\n")){
@@ -69,10 +72,16 @@ static void logProcess(int idx, char* funcName){
             }
         } 
     }
+
+    if (!log_name){
+            goto NO_LOG_SPECIFIED;
+            hasTitle = 1;
+    }
     //Adding current log
     openFile = fopen(".\\Lib\\log.txt", "a+");
     if (openFile){
-        if (log_name && !hasTitle){
+        LOG_SPECIFIED_SUCCESSFULLY = 1;
+        if (!hasTitle){
             fflush(openFile);
             fprintf(openFile, "This is the log of: [%s]\n", log_name);
             hasTitle = 1;
@@ -89,10 +98,13 @@ static void logProcess(int idx, char* funcName){
     }
 
     //Freeing memory
-    fclose(openFile);
-    closedir(logName);
-    free(direntData);
+    NO_LOG_SPECIFIED:;
+        //Make sure only set the destructor if the log_name isn't null (log_name not found)
+        fclose(openFile);
+        closedir(logName);
+        free(direntData);
 }
+
 /**
  * @brief The complement function for findData, performing comparing of indices
  * 
