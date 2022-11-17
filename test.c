@@ -1,7 +1,8 @@
+#define FILE_LOG_NAME 0
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "./Lib/PythonListReplication.h"
+#include "./lib/PythonListReplication.h"
 
 struct new_data{
     int a;
@@ -25,13 +26,20 @@ int main(){
     append(&my_list, parseData(strlen(str) + 1, str, __STRING__));
     append(&my_list, parseData(sizeof(struct new_data), &test, __CUSTOM__));
 
-    printf("The size of the list is = %d\n", len(my_list));
-
+    printf("Before modified list: \n");
     print(&my_list, 1);
 
-    printf("%d\n", indexOffset(&my_list, parseData(strlen("This is a string") + 1, "This is a string", __STRING__), 999));
-    printf("%d\n", indexOffset(&my_list, NULL, 0));
+    list_element *i = my_list->root;
 
+    printf("Current length = %d\n", len(&my_list));
+
+    for (int i = 0; i < len(&my_list); i++)
+        modifyIndex(&my_list, parseData(sizeof(int), &a, __INT__), i);
+    
+    printf("After modifed list: \n");
+    print(&my_list, 1);
+
+    printf("%d", indexOffset(&my_list, parseData(999, NULL, __INT__), 999));
     
     return 0;
 }

@@ -4,5 +4,8 @@
 # ignore ALL .o files
 *.o
 
+#ignore ALL .exe files
+*.exe
+
 # ignore external private library
 /curl

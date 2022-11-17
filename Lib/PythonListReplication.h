@@ -41,9 +41,7 @@
 #define index(list, type) findData(list, type, 0)
 #define indexOffset(list, type, offset) findData(list, type, offset)
 
-#define byte(data) sizeof(data)
-
-#define len(list) *list != NULL ? (*list)->size : 0
+#define len(list) (*list != NULL ? (*list)->size : 0)
 #define clear(list) clearList(list)
 
 #define popHead(list) delete(list, 0)
@@ -67,6 +65,7 @@ typedef struct data{
     size_t                  size;
     int                 mode : 5;
 }__attribute__((packed, aligned(1))) data;
+
 typedef struct{
     struct list_element*    root;
     size_t                  size;
@@ -81,7 +80,7 @@ int                         removeIndex(list **list, const int pos);
 data*                       parseData(const int size, void* data, const int mode);
 void                        reverseList(list **list);
 data*                       findIndex(list **list, const int pos);
-void                        modifyIndex(list **list, data* data, const int pos);
+int                         modifyIndex(list **list, data* data, const int pos);
 void                        clearList(list **list);
 void                        print(list **list, const int step);
 int                         findData(list **list, const data* data, const int offset);

@@ -1,3 +1,13 @@
+/**
+ * @file PythonListReplication.c
+ * @author MagicExists (nguyen121107@gmail.com)
+ * @brief https://github.com/gugugiyu/PythonList
+ * @version 1.0
+ * @date 2022-11-09
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +32,59 @@ const char *table[] = {
     "Invalid step, step musn't be 0!",
     "Warning: The list has no element, most function don't work on a clear list!"
 };
+
+/**
+ * @brief This function will modify the content of the list at a given index
+ * 
+ * @param arg_list The pointer to the given list
+ * @param data The given data structure which was parsed
+ * @param pos The index of the node to be modifed
+ * 
+ * @return On success, the function will return 1, else -1 is returned if error. Note that if the position exceeded the list's size, append action will be perform instead, this counts as a success.
+ */
+
+int modifyIndex(list **arg_list, data* data, const int pos){
+    if (data == NULL){
+        logProcess(0, "modifyIndex");
+        goto fail;
+    }else if (pos >= (*arg_list)->size){
+        append(arg_list, data);
+        goto fail;
+    }else if (*arg_list == NULL){
+        logProcess(0, "modifyIndex");
+        goto fail;
+    }else{
+        list_element* iterator = (*arg_list)->root;
+
+        if (pos < 0){
+            while (iterator->next != NULL)
+                iterator = iterator->next;
+        }else{
+            int counter = 0;
+
+            while (counter < pos && iterator->next != NULL){
+                iterator = iterator->next;
+                counter++;
+            }
+        }
+        //Modify the data structure
+        iterator->data = realloc(iterator->data, data->size);
+
+        if (iterator == NULL){
+            logProcess(4, "modifyIndex");
+            goto fail;
+        }
+        memcpy(iterator->data, data->data, data->size);
+
+        iterator->size = data->size;
+        iterator->mode = data->mode;
+
+    }  
+    return 1;
+    fail:
+    return -1;
+
+}
 
 /**
  * @brief This function will be the destructor of the log file report
@@ -312,7 +375,6 @@ void clearList(list **arg_list){
  * @return int On success, the function returns 1, else -1 will be returned
  */
 int delete(list** arg_list, const int pos){
-    
     if (*arg_list == NULL){
         logProcess(0, "delete");
         goto fail;
@@ -369,7 +431,7 @@ int delete(list** arg_list, const int pos){
  * @param size The size of the value
  * @param pos The position to be added, input negative value to add at the end
  * @param data_type The defined macro of data_type
- * @return int On sucesss, 0 will be returned, else 1 will be returned if error
+ * @return int On success, 0 will be returned, else 1 will be returned if error
  */
 int addIndex(list** arg_list, const void* value, const size_t size, const int pos, const int data_type){
     if (data_type < 0 || data_type > 12){
@@ -457,8 +519,6 @@ void print(list **arg_list, const int step){
         return;
     }
 
-    printf("step = %d\n", step);
-
     if (!step){
         logProcess(5, "print");
         return;
@@ -524,5 +584,4 @@ void print(list **arg_list, const int step){
             printf(", ");
     }
     printf("]\n");
-
 }
