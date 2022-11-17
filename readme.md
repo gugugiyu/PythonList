@@ -102,9 +102,9 @@ typedef struct list_element{
 ```
 
 
-## Function
+## Defined macro
 
-#### Initialize a list
+### Initialize a list
 
 ```
 void makeList(list ** list, ...);
@@ -119,8 +119,8 @@ void makeList(list ** list, ...);
 
 The makeList() function will initialize the list with multiple input
 
-
-#### Adding element
+### Adding an element
+***All defined macro will invoke the static function 'addIndex'***
 
 ```
 MACRO: append(list, type)
@@ -131,7 +131,58 @@ MACRO: append(list, type)
 | `list`    | `list**` | **Required**. The given list to be initialize |
 | `type`     | `data*` | **Required**. The given data structure (must be initialized) |
 
-***Note: The `...` parameter must be ended with macro '__ LIST_END__'***
-
 This macro will add a new `list_element` node to the end of the list
+
+
+```
+MACRO: head(list, type)
+```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `list`    | `list**` | **Required**. The given list to be initialize |
+| `type`     | `data*` | **Required**. The given data structure (must be initialized) |
+
+This macro will add a new `list_element` node to the start of the list
+
+
+```
+MACRO: insert(list, type)
+```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `list`    | `list**` | **Required**. The given list to be initialize |
+| `type`     | `data*` | **Required**. The given data structure (must be initialized) |
+
+This macro will add a new `list_element` node to a given index of the list
+
+### Searching with Data
+***All defined macro will invoke the static function 'findData'***
+
+```
+MACRO: index(list, type)
+```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `list`    | `list**` | **Required**. The given list to be initialize |
+| `type`     | `data*` | **Required**. The given data structure (must be initialized) |
+
+This macro will return the index of the given data, if error, the macro will return 1
+
+```
+MACRO: indexOffset(list, type, offset)
+```
+
+| Parameter | Type     | Description                |
+| :-------- | :------- | :------------------------- |
+| `list`    | `list**` | **Required**. The given list to be initialize |
+| `type`     | `data*` | **Required**. The given data structure (must be initialized) |
+| `offset`  | `int`    | **Required**. The given offset to be searched|
+
+This macro will return the index of the given data from range of `[offset...n]`
+
+
+
 
