@@ -12,16 +12,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <dirent.h>
 #include <time.h>
 #include ".\PythonListReplication.h"
-/**
- * @brief The lookup table for error
- * 
- */
 
-int LOG_SPECIFIED_SUCCESSFULLY = 0;
-void __attribute__((destructor)) static printFileLogEnd();
+#define LOG_SPECIFIED_SUCCESSFULLY 
 
 const char *table[] = {
     "Data parameter is null!",
@@ -33,6 +29,12 @@ const char *table[] = {
     "Warning: The list has no element, most function don't work on a clear list!"
 };
 
+data* literal_char_handler(char data){
+    char* dataRet = malloc(1);
+    *dataRet = data;
+    return parseData(1, dataRet, __CHAR__);
+}
+
 /**
  * @brief This function will modify the content of the list at a given index
  * 
@@ -40,18 +42,18 @@ const char *table[] = {
  * @param data The given data structure which was parsed
  * @param pos The index of the node to be modifed
  * 
- * @return On success, the function will return 1, else -1 is returned if error. Note that if the position exceeded the list's size, append action will be perform instead, this counts as a success.
+ * @return On success, the function will return 0, else 1 is returned if error. Note that if the position exceeded the list's size, append action will be perform instead, this counts as a success.
  */
 
 int modifyIndex(list **arg_list, data* data, const int pos){
     if (data == NULL){
-        logProcess(0, "modifyIndex");
+        error_report(modifyIndex, table[0]);
         goto fail;
     }else if (pos >= (*arg_list)->size){
         append(arg_list, data);
         goto fail;
     }else if (*arg_list == NULL){
-        logProcess(0, "modifyIndex");
+        error_report(modifyIndex, table[0]);
         goto fail;
     }else{
         list_element* iterator = (*arg_list)->root;
@@ -71,7 +73,7 @@ int modifyIndex(list **arg_list, data* data, const int pos){
         iterator->data = realloc(iterator->data, data->size);
 
         if (iterator == NULL){
-            logProcess(4, "modifyIndex");
+            error_report(modifyIndex, table[4]);
             goto fail;
         }
         memcpy(iterator->data, data->data, data->size);
@@ -80,102 +82,68 @@ int modifyIndex(list **arg_list, data* data, const int pos){
         iterator->mode = data->mode;
 
     }  
-    return 1;
+    return EXIT_SUCCESS;
     fail:
-    return -1;
+    return EXIT_FAILURE;
 
 }
-
 /**
- * @brief This function will be the destructor of the log file report
+ * @brief This function is a complement for the clearList function, clear the root in detail
  * 
+ * @param root The root passed by the clearList function
  */
-static void printFileLogEnd(){
+void freeListElement(list_element *root){
+    list_element *iterator;
+    
+    while (root != NULL){
+        iterator = root;
+        root = root->next;
 
-    if (LOG_SPECIFIED_SUCCESSFULLY){
-    FILE* openFile = fopen(".\\Lib\\log.txt", "a+");
-
-    fflush(openFile);
-    fprintf(openFile, "-----SECTION END-----\n");
-    fclose(openFile);
+        free(iterator->data);
+        free(iterator);
     }
+    root = NULL;
 }
-
 /**
- * @brief This function will report the log file to log.txt
+ * @brief This function will find the index of a given data structure which is inputted through arguments
  * 
- * @param idx The idx of the error based on the looked up table
- * @param funcName The function whose reporting the error
- */
-static void logProcess(int idx, char* funcName){
-    DIR*                        logName    = NULL; //The directory of the files
-    struct dirent*              direntData = NULL; // The specific data about the current file
-    FILE*                       openFile   = NULL; // File pointer to open the current file
-    static char*                log_name   = NULL; // Static pointer to retain the value of the current file name
-    static int                  hasTitle   = 0; //Check if the title of the file is printed or not
-
-    if (!log_name && !hasTitle){
-        logName = opendir(".");
-
-        while ((direntData = readdir(logName))){
-            //Check if the file extension is c file or not
-            if(strstr(direntData->d_name, ".c")){
-                openFile = fopen(direntData->d_name, "r+");
-
-                if (openFile){
-                //Defined macro for configurating the destructor
-                    char buffer[MAX_SIZE_BUFFER_SHORT];  
-
-                    fgets(buffer, sizeof(buffer), openFile);
-                    if (!strcmp(buffer, "#define FILE_LOG_NAME 0\r\n")){
-                        log_name = (char*)malloc(strlen(direntData->d_name) + 1);
-                        strncpy(log_name, direntData->d_name, strlen(direntData->d_name));
-                    }
-                }
-            }
-        } 
-    }
-
-    if (!log_name){
-            goto NO_LOG_SPECIFIED;
-            hasTitle = 1;
-    }
-    //Adding current log
-    openFile = fopen(".\\Lib\\log.txt", "a+");
-    if (openFile){
-        LOG_SPECIFIED_SUCCESSFULLY = 1;
-        if (!hasTitle){
-            fflush(openFile);
-            fprintf(openFile, "This is the log of: [%s]\n", log_name);
-            hasTitle = 1;
-        }
-
-        time_t curTime;
-        struct tm *formattedTime = NULL;
-
-        time(&curTime);
-        formattedTime = localtime(&curTime);
-
-        fflush(openFile);
-        fprintf(openFile, "[%d:%d:%d] In function \"%s\": %s\n", formattedTime->tm_hour, formattedTime->tm_min, formattedTime->tm_sec, funcName, table[idx]);
-    }
-
-    //Freeing memory
-    NO_LOG_SPECIFIED:;
-        //Make sure only set the destructor if the log_name isn't null (log_name not found)
-        fclose(openFile);
-        closedir(logName);
-        free(direntData);
-}
-
-/**
- * @brief The complement function for findData, performing comparing of indices
- * 
- * @param iterator The iterator passed by findData after adjusted to the unoffset part
+ * @param arg_list The pointer to the list of checking
  * @param data The given data
- * @param offset The previous offset, working as accumulative element for return value
- * @return int On success, the function will return the index of the given data, else -1 is return if error
+ * @param offset The offset of checking process, the iterator will skipped to the unoffset part
+ * @return int On success, the function will return the index of the given data, else 1 is return if error
  */
+int findData(list ** arg_list, const data* data, const int offset){
+    if (data == NULL){
+        error_report(findData, table[0]);
+        goto fail;
+    }
+    
+    if (data->mode < 0 || data->mode > TOTAL_MODE){
+        error_report(findData, table[0]);
+        goto fail;
+    }
+
+    if (offset < 0 || offset >= (*arg_list)->size){
+        error_report(findData, table[0]);
+        goto fail;
+    }
+
+    list_element *iterator = (*arg_list)->root;
+
+    int offsetCount = 0;
+    while (iterator != NULL && offsetCount < offset){
+        iterator = iterator->next;
+        offsetCount++;
+    }
+
+    if (!iterator)
+        goto fail;
+
+    return iterateFunc(iterator, data, offset);
+    fail:
+    return EXIT_FAILURE;
+}
+
 static int iterateFunc(list_element *iterator, const data* data, const int offset){
     int counter = offset;
     while (iterator != NULL){
@@ -200,63 +168,6 @@ static int iterateFunc(list_element *iterator, const data* data, const int offse
     return -1;
 }
 
-/**
- * @brief This function is a complement for the clearList function, clear the root in detail
- * 
- * @param root The root passed by the clearList function
- */
-void freeListElement(list_element *root){
-    list_element *iterator;
-    
-    while (root != NULL){
-        iterator = root;
-        root = root->next;
-
-        free(iterator->data);
-        free(iterator);
-    }
-    root = NULL;
-}
-/**
- * @brief This function will find the index of a given data structure which is inputted through arguments
- * 
- * @param arg_list The pointer to the list of checking
- * @param data The given data
- * @param offset The offset of checking process, the iterator will skipped to the unoffset part
- * @return int On success, the function will return the index of the given data, else -1 is return if error
- */
-int findData(list ** arg_list, const data* data, const int offset){
-    if (data == NULL){
-        logProcess(0, "findData");
-        goto fail;
-    }
-    
-    if (data->mode < 0 || data->mode > 12){
-        logProcess(1, "findData");
-        goto fail;
-    }
-
-    if (offset < 0 || offset >= (*arg_list)->size){
-        logProcess(2, "findData");
-        goto fail;
-    }
-
-    list_element *iterator = (*arg_list)->root;
-
-    int offsetCount = 0;
-    while (iterator != NULL && offsetCount < offset){
-        iterator = iterator->next;
-        offsetCount++;
-    }
-
-    if (!iterator)
-        goto fail;
-
-    return iterateFunc(iterator, data, offset);
-    
-    fail:
-    return -1;
-}
 
 /**
  * @brief This function will return the data structure based on the given index
@@ -267,7 +178,10 @@ int findData(list ** arg_list, const data* data, const int offset){
  */
 data* findIndex(list** arg_list, const int pos){
     if (*arg_list == NULL){
-        logProcess(3, "findIndex");
+        error_report(findIndex, table[3]);
+        goto fail;
+    }else if(pos > (*arg_list)->size){
+        error_report(findIndex, table[2]);
         goto fail;
     }else{
         list_element* iterator = (*arg_list)->root;
@@ -303,13 +217,14 @@ data* findIndex(list** arg_list, const int pos){
  * @return data* On sucess, the pointer to this data structure will be returned, else NULL will be returned
  */
 data* parseData(const int size, void* content, const int mode){
-    if (mode < 0 || mode > 12){
-        logProcess(1, "parseData");
+    printf("called here! %d %g %d\n", size, *(float *) content, mode);
+    if (mode < 0 || mode > TOTAL_MODE){
+        error_report(parseData, table[1]);
         goto fail;
     }
 
     if (content == NULL){
-        logProcess(0, "parseData");
+        error_report(parseData, table[0]);
         goto fail;
     }
 
@@ -321,7 +236,7 @@ data* parseData(const int size, void* content, const int mode){
     if(ret->data)
         memcpy(ret->data, content, size);
     else{
-        logProcess(4, "parseData");
+        error_report(4, "parseData");
         goto fail;
     }
     
@@ -347,10 +262,10 @@ void makeList(list** arg_list, ...){
     while (1){
         data* ret = va_arg(list_va, data*);
 
-        if (ret == __LIST_END__)
+        if (ret == __MAKE_END)
             break;
 
-        addIndex(arg_list, ret->data, ret->size, -1, ret->mode);
+        addIndex(arg_list, ret, -1);
     }
 
     va_end(list_va);   
@@ -372,11 +287,11 @@ void clearList(list **arg_list){
  * 
  * @param arg_list The pointer to the list to be deleted
  * @param pos The given index to the list_element structure to be deleted. Negative values are treated as end of list;
- * @return int On success, the function returns 1, else -1 will be returned
+ * @return int On success, the function returns 0, else 1 will be returned
  */
 int delete(list** arg_list, const int pos){
     if (*arg_list == NULL){
-        logProcess(0, "delete");
+        error_report(0, "delete");
         goto fail;
     }else{
         list_element* iterator = (*arg_list)->root;
@@ -395,7 +310,7 @@ int delete(list** arg_list, const int pos){
 
             }else if(pos == 0){
                 list_element *buffer = (*arg_list)->root;
-                (*arg_list)->root        = (*arg_list)->root->next;
+                (*arg_list)->root    = (*arg_list)->root->next;
 
                 free(buffer);
             }else{
@@ -417,9 +332,9 @@ int delete(list** arg_list, const int pos){
             (*arg_list)->size--;
         }
     }
-    return 1;
+    return EXIT_SUCCESS;
     fail:
-    return -1;
+    return EXIT_FAILURE;
 
 }
 
@@ -430,17 +345,18 @@ int delete(list** arg_list, const int pos){
  * @param value The pointer to the value
  * @param size The size of the value
  * @param pos The position to be added, input negative value to add at the end
- * @param data_type The defined macro of data_type
+ * @param data->mode The defined macro of data->mode
  * @return int On success, 0 will be returned, else 1 will be returned if error
  */
-int addIndex(list** arg_list, const void* value, const size_t size, const int pos, const int data_type){
-    if (data_type < 0 || data_type > 12){
-        logProcess(1, "addIndex");
+int addIndex(list** arg_list, const data* data, const int pos){
+    if (data->mode < 0 || data->mode > TOTAL_MODE){
+        printf("what ? %d\n", data->mode);
+        error_report(addIndex, table[1]);
         goto fail;
     }
 
-    if (value == NULL){
-        logProcess(0, "addIndex");
+    if (data->data == NULL){
+        error_report(addIndex, table[0]);
         goto fail;
     }
 
@@ -449,29 +365,29 @@ int addIndex(list** arg_list, const void* value, const size_t size, const int po
         *arg_list         = (list*)malloc(sizeof(list));
         (*arg_list)->root = (list_element*)malloc(sizeof(list_element));
 
-        (*arg_list)->root->data = malloc(size);
+        (*arg_list)->root->data = malloc(data->size);
 
         if ((*arg_list)->root->data)
-            memcpy((*arg_list)->root->data, value, size);
+            memcpy((*arg_list)->root->data, data->data, data->size);
         else{
-            logProcess(4, "addIndex");
+            error_report(4, "addIndex");
             goto fail;
         }
-        (*arg_list)->root->size = size;
+        (*arg_list)->root->size = data->size;
         (*arg_list)->root->next = NULL;
-        (*arg_list)->root->mode = data_type;
+        (*arg_list)->root->mode = data->mode;
         (*arg_list)->size = 1;
     }else{
 
         list_element* new_list_element = (list_element*)malloc(sizeof(list_element));
-        new_list_element->data = malloc(size);
-        new_list_element->size = size;
-        new_list_element->mode = data_type;
+        new_list_element->data = malloc(data->size);
+        new_list_element->size = data->size;
+        new_list_element->mode = data->mode;
 
         if (new_list_element->data)
-            memcpy(new_list_element->data, value, size);
+            memcpy(new_list_element->data, data->data, data->size);
         else{
-            logProcess(4, "addIndex");
+            error_report(4, "addIndex");
             goto fail;
         }
 
@@ -514,13 +430,13 @@ int addIndex(list** arg_list, const void* value, const size_t size, const int po
  */
 void print(list **arg_list, const int step){
     if(*arg_list == NULL){
-        logProcess(6, "print");
+        error_report(print, table[6]);
         printf("[]");
         return;
     }
 
     if (!step){
-        logProcess(5, "print");
+        error_report(print, table[5]);
         return;
     }
     
@@ -531,7 +447,7 @@ void print(list **arg_list, const int step){
             case __SHORT__:
                 printf("%i", *((short*)iterator->data));
                 break;
-            case __UNSIGNED_SHORT:
+            case __UNSIGNED_SHORT__:
                 printf("%i", *((unsigned short*)iterator->data));
                 break;
             case __CHAR__:
@@ -553,16 +469,19 @@ void print(list **arg_list, const int step){
                 printf("%lu", *((unsigned long*)iterator->data));
                 break;
             case __FLOAT__:
-                printf("%f", *((float*)iterator->data));
+                printf("%g", *((float*)iterator->data));
                 break;
             case __DOUBLE__:
-                printf("%lf", *((double*)iterator->data));
+                printf("%g", *((double*)iterator->data));
                 break;
             case __LONG_DOUBLE__:
                 printf("%Lf", *((long double*)iterator->data));
                 break;
             case __STRING__:
                 printf("%s", ((char*)iterator->data));
+                break;
+            case __BOOLEAN__:
+                printf("%s", *((bool *)iterator->data) == true ? "true" : "false");
                 break;
             case __CUSTOM__:
                 printf("CUSTOM");

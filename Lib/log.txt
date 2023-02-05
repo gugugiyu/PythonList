@@ -14,3 +14,11 @@ This is the log of: [test.c]
 [21:54:59] In function "parseData": Data parameter is null!
 [21:54:59] In function "findData": Data parameter is null!
 -----SECTION END-----
+This is the log of: [test.c]
+[20:28:58] In function "parseData": Data parameter is null!
+[20:28:59] In function "findData": Data parameter is null!
+-----SECTION END-----
+This is the log of: [test.c]
+[9:49:11] In function "parseData": Data parameter is null!
+[9:49:11] In function "findData": Data parameter is null!
+-----SECTION END-----
