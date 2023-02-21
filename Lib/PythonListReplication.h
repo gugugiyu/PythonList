@@ -13,10 +13,13 @@
 
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define TOTAL_MODE 29
+
 enum modePool{
+    /* Listing out all mode to support*/
     __SHORT__,
     __UNSIGNED_SHORT__,
     __CHAR__,
@@ -57,12 +60,12 @@ enum modePool{
 #define MAX_SIZE_BUFFER_MEDIUM 513
 #define MAX_SIZE_BUFFER_LARGE 1025
 
-#define append(list, type) addIndex(list, type, -1)
-#define head(list, type) addIndex(list, type, 0)
-#define insert(list, type, pos) addIndex(list, type, pos)
+#define append(list, data) addIndex(list, data, -1)
+#define head(list, data) addIndex(list, data, 0)
+#define insert(list, data, pos) addIndex(list, data, pos)
 
-#define index(list, type) findData(list, type, 0)
-#define indexOffset(list, type, offset) findData(list, type, offset)
+#define index(list, data) findData(list, data, 0)
+#define indexOffset(list, data, offset) findData(list, data, offset)
 
 #define len(list) (*list ! = NULL ? (*list)->size: 0)
 #define clear(list) clearList(list)
@@ -75,69 +78,80 @@ enum modePool{
 #define getLast(list) findIndex(list, -1)
 #define getIndex(list, pos) findIndex(list, pos)
 
-#define error_report(func_name, err) fprintf(stderr, #func_name #err)
+#define error_report(func_name, err) fprintf(stderr, "%s: %s", #func_name, err)
 
 //_Generic selection upgraded, credit to Alex Gray from this post:
 //https://stackoverflow.com/questions/9804371/syntax-and-sample-usage-of-generic-in-c11/17290414#17290414
 
-#define dataOf(x) _Generic((0,x),                                                                                                          \
-        /*Case where value are not literal*/                                                                                               \
-        _Bool                   : parseData(sizeof(bool), x, __BOOLEAN__),                                                                 \
-        unsigned char           : parseData(sizeof(unsigned char), x, __UNSIGNED_CHAR__),                                                  \
-        char                    : parseData(1,  x, __CHAR__),                                                                              \
-        signed char             : parseData(sizeof(signed char), x, __CHAR__),                                                             \
-        short int               : parseData(sizeof(short),  x, __SHORT__),                                                                 \
-        unsigned short int      : parseData(sizeof(unsigned short),  x, __UNSIGNED_SHORT__),                                               \
-        int                     : parseData(sizeof(int),  x, __INT__),                                                                     \
-        unsigned int            : parseData(sizeof(unsigned int),  x, __UNSIGNED_INT__),                                                   \
-        long int                : parseData(sizeof(long),  x, __LONG__),                                                                   \
-        unsigned long int       : parseData(sizeof(unsigned long),  x, __UNSIGNED_LONG__),                                                 \
-        long long int           : parseData(sizeof(long long),  x, __LONG_LONG_INT__),                                                     \
-        unsigned long long int  : parseData(sizeof(unsigned long long),  x, __UNSIGNED_LONG_LONG_INT__),                                   \
-        float                   : parseData(sizeof(float),  x, __FLOAT__),                                                                 \
-        double                  : parseData(sizeof(double),  x, __DOUBLE__),                                                               \
-        long double             : parseData(sizeof(long double),  x, __LONG_DOUBLE__),                                                     \
-        /*Pointer case*/                                                                                                                   \
-        _Bool *                 : parseData(sizeof(bool *), x, __BOOLEAN__),                                                               \
-        char *                  : parseData(strlen((char *) x) + 1, (x), __STRING__),                                                      \
-        unsigned char *         : parseData(strlen((char *) x) + 1 , x, __UNSIGNED_CHAR__),                                                \
-        const char *            : parseData(strlen((char *) x) + 1,  x, __STRING__),                                                       \
-        signed char *           : parseData(strlen((char *) x) + 1, x, __STRING__),                                                        \
-        short int *             : parseData(sizeof(short *),  x, __SHORT__),                                                               \
-        unsigned short int *    : parseData(sizeof(unsigned short *),  x, __UNSIGNED_SHORT__),                                             \
-        int *                   : parseData(sizeof(int *),  x, __INT__),                                                                   \
-        unsigned int *          : parseData(sizeof(unsigned int *),  x, __UNSIGNED_INT__),                                                 \
-        long int *              : parseData(sizeof(long *),  x, __LONG__),                                                                 \
-        unsigned long int *     : parseData(sizeof(unsigned long *),  x, __UNSIGNED_LONG__),                                               \
-        long long int *         : parseData(sizeof(long long *),  x, __LONG_LONG_INT__),                                                   \
-        unsigned long long int *: parseData(sizeof(unsigned long long *),  x, __UNSIGNED_LONG_LONG_INT__),                                 \
-        float *                 : parseData(sizeof(float *),  x, __FLOAT__),                                                               \
-        double *                : parseData(sizeof(double *),  x, __DOUBLE__),                                                             \
-        long double *           : parseData(sizeof(long double *),  x, __LONG_DOUBLE__),                                                   \
-        /*User struct */                                                                                                                   \
-        default                 : "other")
+#define dataOf(VAL) _Generic((0,VAL),                                                                                                          \
+        /*This should be compatible with all the variable passing type*/                                                                       \
+        _Bool *                 : parseData(sizeof(bool *), VAL, __BOOLEAN__),                                                                 \
+        char *                  : parseData(strlen((char *) VAL) + 1, VAL, __STRING__),                                                        \
+        unsigned char *         : parseData(strlen((char *) VAL) + 1 , VAL, __STRING__),                                                       \
+        const char *            : parseData(strlen((char *) VAL) + 1,  VAL, __STRING__),                                                       \
+        signed char *           : parseData(strlen((char *) VAL) + 1, VAL, __STRING__),                                                        \
+        short int *             : parseData(sizeof(short *),  VAL, __SHORT__),                                                                 \
+        unsigned short int *    : parseData(sizeof(unsigned short *),  VAL, __UNSIGNED_SHORT__),                                               \
+        int *                   : parseData(sizeof(int *),  VAL, __INT__),                                                                     \
+        unsigned int *          : parseData(sizeof(unsigned int *),  VAL, __UNSIGNED_INT__),                                                   \
+        long int *              : parseData(sizeof(long *),  VAL, __LONG__),                                                                   \
+        unsigned long int *     : parseData(sizeof(unsigned long *),  VAL, __UNSIGNED_LONG__),                                                 \
+        long long int *         : parseData(sizeof(long long *),  VAL, __LONG_LONG_INT__),                                                     \
+        unsigned long long int *: parseData(sizeof(unsigned long long *),  VAL, __UNSIGNED_LONG_LONG_INT__),                                   \
+        float *                 : parseData(sizeof(float *),  VAL, __FLOAT__),                                                                 \
+        double *                : parseData(sizeof(double *),  VAL, __DOUBLE__),                                                               \
+        long double *           : parseData(sizeof(long double *),  VAL, __LONG_DOUBLE__),                                                     \
+        /*User struct */                                                                                                                       \
+        default                 : NULL)
 
-typedef struct list_element{
+#define dataOf_l(VAL) _Generic((0,VAL),                                                                                                        \
+        char*                   : literalStringHandler,                                                                                        \
+        char                    : literalCharHandler,                                                                                          \
+        int                     : literalIntegerHandler,                                                                                       \
+        float                   : literalFloatHandler,                                                                                         \
+        double                  : literalDoubleHandler,                                                                                        \
+        long double             : literalLongDoubleHandler,                                                                                    \
+        long int                : literalLongIntHandler,                                                                                       \
+        long long int           : literalLongLongIntHandler,                                                                                   \
+        default                 : NULL)(VAL)
+
+typedef struct l_elem{
     void*                   data;
     size_t                  size;
     int                     mode;
-    struct list_element*    next; 
-    typedef void (*print_func)(void*);   
-}__attribute__((packed, aligned(1))) list_element;
+    struct l_elem*    next; 
+}l_elem;
+
+typedef struct l_elem_sup_struct{
+    l_elem*                 l_elem;
+    const char*                   struct_name;
+}l_elem_sup_struct;
+
 
 typedef struct data{
     void*                   data;
     size_t                  size;
     int                     mode;
-}__attribute__((packed, aligned(1))) data;
+}data;
 
 typedef struct{
-    struct list_element*    root;
+    struct l_elem*    root;
     size_t                  size;
 }list;
 
 
 data*                       parseData(const int size, void* data, const int mode);
+
+/* Literal handler case */
+data*                       literalCharHandler(char data);
+data*                       literalStringHandler(char* data);
+data*                       literalFloatHandler(float data);
+data*                       literalIntegerHandler(int data);
+data*                       literalLongDoubleHandler(long double data);
+data*                       literalLongIntHandler(long int data);
+data*                       literalDoubleHandler(double data);
+data*                       literalLongLongIntHandler(long long  data);
+
 int                         addIndex(list **list, const data* data, const int pos);
 void                        makeList(list ** list, ...);
 int                         removeIndex(list **list, const int pos);
@@ -145,9 +159,9 @@ void                        reverseList(list **list);
 data*                       findIndex(list **list, const int pos);
 int                         modifyIndex(list **list, data* data, const int pos);
 void                        clearList(list **list);
-static void                 freeListElement(list_element *root);
+static void                 freeListElement(l_elem *root);
 void                        print(list **list, const int step);
 int                         findData(list **list, const data* data, const int offset);
-int                         delete(list** arg_list, const int pos);
-static int                  iterateFunc(list_element *iterator, const data* data, const int offset);
+int                         delete(list** _list, const int pos);
+static int                  iterateFunc(l_elem *iterator, const data* data, const int offset);
 #endif

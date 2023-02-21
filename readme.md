@@ -31,10 +31,12 @@ and want to experience the same type of data structure in Python while coding C.
 - Replication of Python List in C with integrated function featuring:
 ```
 - Initilization
+- Searching with index or data
 - Insertion
 - Deletion
 - Integrated print function
 - Reversal
+- Auto-type detect using generic selection
 ```
 
 
@@ -50,7 +52,7 @@ This is the main list used for storing. Defined this list in the following synta
 
 ```javascript
 typedef struct list{
-    struct list_element*    root;
+    struct l_elem*    root;
     size_t                  size;
 }list;
 ```
@@ -60,45 +62,53 @@ typedef struct list{
 The specific data type used for storing values. Defined either through parseData function or manually:
 
 
-#### Manually example:
+#### **Manually example**:
 
+``` c
+data \*my_data_name = (data\*)malloc(sizeof(data));//Allocating memory with malloc
 
-**data \*my_data_name = (data\*)malloc(sizeof(data));** //Allocating memory with malloc
+my_data_name->data = pointer_to_data; //Set the data
 
-**my_data_name->data = pointer_to_data;** //Set the data
+my_data_name->size = size_in_bytes;//Set the size
 
-**my_data_name->size = size_in_bytes;** //Set the size
+my_data_name->mode = defined macros; //Set the mode (datatype) of this data
+```
 
-**my_data_name->mode = defined macros;** //Set the mode (datatype) of this data
+#### **Using parseData() function example**:
+``` c
+data \*my_data_name = (data\*)malloc(sizeof(data));
 
+data = parseData(size_int_bytes, pointer_to_data, defined_macros);** //Built in parse function
+``` 
+#### **Calling auto-detect macro:**
+``` c
+data* my_data_name = (data*)malloc(sizeof(data));
+int   some_number  = 10;
 
-#### Using parseData() function example:
+data = dataOf(&some_number); //If the value is rvalue
+data = dataOf_l(10L);        //If the value is lvalue (literal)
+```
 
-**data \*my_data_name = (data\*)malloc(sizeof(data));** 
-
-**data = parseData(size_int_bytes, pointer_to_data, defined_macros);** //Built in parse function
-
-
-
-```javascript
+The structure `data` is defined as follow: 
+``` c
 typedef struct data{
-    void*                   data;
-    size_t                  size;
-    int                 mode : 5;
+    void*                   data; //Pointer to the data
+    size_t                  size; //Size of the data
+    int                     mode; //Mode to know the type of the data
 }data;
 ```
 
-### list_element
+### l_elem
 
 The replication of nodes inside this list, it's not encouraged to declare this out as an variable or pointer, as the usages are internal
 
-```
-typedef struct list_element{
+``` c
+typedef struct l_elem{
     void*                   data;
     size_t                  size;
-    int                 mode : 5;
-    struct list_element*    next;    
-}list_element;
+    int                     mode;
+    struct l_elem*          next;  
+}l_elem;
 ```
 
 
@@ -115,9 +125,9 @@ void makeList(list ** list, ...);
 | `list`    | `list**` | **Required**. The given list to be initialize |
 | `...`     | `undefined`|The variadic parameters   |
 
-***Note: The `...` parameter must be ended with macro '__ LIST_END__'***
+***Note: The `...` parameter must be ended with macro '__ MAKE_END'***
 
-The makeList() function will initialize the list with multiple input
+The makeList() function will initialize the list with multiple input, the `...` will contains only the `data*` type, which can be retrieve by explicitly calling the `parseData()` function or using the **(BETA)** feature of auto detect: **dataOf()** or **dataOf_l()**
 
 ### Adding an element
 ***All defined macro will invoke the static function 'addIndex'***
@@ -131,7 +141,7 @@ MACRO: append(list, type)
 | `list`    | `list**` | **Required**. The given list to be initialize |
 | `type`     | `data*` | **Required**. The given data structure (must be initialized) |
 
-This macro will add a new `list_element` node to the end of the list
+This macro will add a new `l_elem` node to the end of the list
 
 
 ```
@@ -143,7 +153,7 @@ MACRO: head(list, type)
 | `list`    | `list**` | **Required**. The given list to be initialize |
 | `type`     | `data*` | **Required**. The given data structure (must be initialized) |
 
-This macro will add a new `list_element` node to the start of the list
+This macro will add a new `l_elem` node to the start of the list
 
 
 ```
@@ -155,7 +165,7 @@ MACRO: insert(list, type)
 | `list`    | `list**` | **Required**. The given list to be initialize |
 | `type`     | `data*` | **Required**. The given data structure (must be initialized) |
 
-This macro will add a new `list_element` node to a given index of the list
+This macro will add a new `l_elem` node to a given index of the list
 
 ### Searching with Data
 ***All defined macro will invoke the static function 'findData'***

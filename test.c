@@ -1,33 +1,22 @@
-#define FILE_LOG_NAME 0
 #include <stdio.h>
-#include <string.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include "./lib/PythonListReplication.h"
 
-struct new_data{
-    int a;
-    float d;
-    char *c;
-};
-
 int main(){
-    list* my_list = NULL;
+  list* my_list[5] = {NULL, NULL, NULL, NULL};
 
-    int a = 10;
-    char *str = "This is a string";
-    float b = 3.45;
-    char character = 'b';
-    char *C = "Hello Word!";
-    char arr[12] = "oaj";
-    double c = 6.7, c1, c2;
-    struct new_data test;
-    test.a = 10;
-    test.d = 3.14;
-    test.c = "test string";
+  for (int i = 0; i < 5; i++){
+    makeList(&my_list[i], dataOf("Something"), dataOf_l('e'), dataOf_l(1), dataOf_l(3.14F), __MAKE_END);
+  } 
+
+  reverseList(&my_list[0]);
+  for (int i = 0; i < 5; i++)
+    print(&my_list[i], 1);
+  
+  printf("%d\n", index(&my_list[0], dataOf_l("Something")));
+  pause();
 
 
-    makeList(&my_list, dataOf(&b), dataOf(arr), dataOf(&c), __MAKE_END);
-
-    print(&my_list, 1);
-    return 0;
+  return 0;
 }

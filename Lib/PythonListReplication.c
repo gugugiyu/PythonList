@@ -17,7 +17,7 @@
 #include <time.h>
 #include ".\PythonListReplication.h"
 
-#define LOG_SPECIFIED_SUCCESSFULLY 
+
 
 const char *table[] = {
     "Data parameter is null!",
@@ -29,10 +29,50 @@ const char *table[] = {
     "Warning: The list has no element, most function don't work on a clear list!"
 };
 
-data* literal_char_handler(char data){
+data* literalIntegerHandler(int data){
+    int* dataRet = malloc(sizeof(int));
+    *dataRet = data;
+    return parseData(sizeof(int), dataRet, __INT__);
+}
+
+data* literalStringHandler(char* data){
+    return parseData(strlen(data) + 1, data, __STRING__);
+}
+
+data* literalCharHandler(char data){
     char* dataRet = malloc(1);
     *dataRet = data;
     return parseData(1, dataRet, __CHAR__);
+}
+
+data* literalFloatHandler(float data){
+    float* dataRet = malloc(sizeof(float));
+    *dataRet = data;
+    return parseData(sizeof(float), dataRet, __FLOAT__);
+}
+
+data* literalDoubleHandler(double data){
+    double* dataRet = malloc(sizeof(double));
+    *dataRet = data;
+    return parseData(sizeof(double), dataRet, __DOUBLE__);
+}
+
+data* literalLongIntHandler(long data){
+    long* dataRet = malloc(sizeof(long));
+    *dataRet = data;
+    return parseData(sizeof(long), dataRet, __CHAR__);
+}
+
+data* literalLongDoubleHandler(long double data){
+    long double * dataRet = malloc(sizeof(long double));
+    *dataRet = data;
+    return parseData(sizeof(long double), dataRet, __CHAR__);
+}
+
+data* literalLongLongIntHandler(long long data){
+    long long * dataRet = malloc(sizeof(long long));
+    *dataRet = data;
+    return parseData(sizeof(long long), dataRet, __CHAR__);
 }
 
 /**
@@ -45,6 +85,31 @@ data* literal_char_handler(char data){
  * @return On success, the function will return 0, else 1 is returned if error. Note that if the position exceeded the list's size, append action will be perform instead, this counts as a success.
  */
 
+void reverseList(list **arg_list){
+
+    struct l_elem* prev = NULL;
+    struct l_elem* current = (*arg_list)->root;
+    struct l_elem* next = NULL;
+    
+    while (current != NULL) {
+        next = current->next;
+
+        current->next = prev;
+ 
+        prev = current;
+        current = next;
+    }
+    (*arg_list)->root = prev;
+}
+
+/**
+ * @brief This function will modify the data at a given position
+ * 
+ * @param arg_list The given list to be modified
+ * @param data The data that will replace the currnet one
+ * @param pos The position to replace, put negative value for end of the list
+ * @return int return 0 upon success, else 1 is return 
+ */
 int modifyIndex(list **arg_list, data* data, const int pos){
     if (data == NULL){
         error_report(modifyIndex, table[0]);
@@ -56,7 +121,7 @@ int modifyIndex(list **arg_list, data* data, const int pos){
         error_report(modifyIndex, table[0]);
         goto fail;
     }else{
-        list_element* iterator = (*arg_list)->root;
+        l_elem* iterator = (*arg_list)->root;
 
         if (pos < 0){
             while (iterator->next != NULL)
@@ -92,8 +157,8 @@ int modifyIndex(list **arg_list, data* data, const int pos){
  * 
  * @param root The root passed by the clearList function
  */
-void freeListElement(list_element *root){
-    list_element *iterator;
+void freeListElement(l_elem *root){
+    l_elem *iterator;
     
     while (root != NULL){
         iterator = root;
@@ -128,7 +193,7 @@ int findData(list ** arg_list, const data* data, const int offset){
         goto fail;
     }
 
-    list_element *iterator = (*arg_list)->root;
+    l_elem *iterator = (*arg_list)->root;
 
     int offsetCount = 0;
     while (iterator != NULL && offsetCount < offset){
@@ -144,10 +209,9 @@ int findData(list ** arg_list, const data* data, const int offset){
     return EXIT_FAILURE;
 }
 
-static int iterateFunc(list_element *iterator, const data* data, const int offset){
+static int iterateFunc(l_elem *iterator, const data* data, const int offset){
     int counter = offset;
     while (iterator != NULL){
-        printf("%d\n", data->mode);
         if (iterator->mode == data->mode){
             if (data->mode == __CUSTOM__)
                 continue;
@@ -184,7 +248,7 @@ data* findIndex(list** arg_list, const int pos){
         error_report(findIndex, table[2]);
         goto fail;
     }else{
-        list_element* iterator = (*arg_list)->root;
+        l_elem* iterator = (*arg_list)->root;
 
         if (iterator->next == NULL){
             return parseData(iterator->size, iterator->data, iterator->mode);
@@ -217,7 +281,6 @@ data* findIndex(list** arg_list, const int pos){
  * @return data* On sucess, the pointer to this data structure will be returned, else NULL will be returned
  */
 data* parseData(const int size, void* content, const int mode){
-    printf("called here! %d %g %d\n", size, *(float *) content, mode);
     if (mode < 0 || mode > TOTAL_MODE){
         error_report(parseData, table[1]);
         goto fail;
@@ -283,18 +346,19 @@ void clearList(list **arg_list){
 }
 
 /**
- * @brief This function will delete a list_element structure at a given index
+ * @brief This function will delete a l_elem structure at a given index
  * 
  * @param arg_list The pointer to the list to be deleted
- * @param pos The given index to the list_element structure to be deleted. Negative values are treated as end of list;
+ * @param pos The given index to the l_elem structure to be deleted. Negative values are treated as end of list;
  * @return int On success, the function returns 0, else 1 will be returned
  */
+
 int delete(list** arg_list, const int pos){
     if (*arg_list == NULL){
         error_report(0, "delete");
         goto fail;
     }else{
-        list_element* iterator = (*arg_list)->root;
+        l_elem* iterator = (*arg_list)->root;
 
         if (iterator->next == NULL){
                 //FREE THE LIST;
@@ -309,7 +373,7 @@ int delete(list** arg_list, const int pos){
                 iterator->next = NULL;
 
             }else if(pos == 0){
-                list_element *buffer = (*arg_list)->root;
+                l_elem *buffer = (*arg_list)->root;
                 (*arg_list)->root    = (*arg_list)->root->next;
 
                 free(buffer);
@@ -321,7 +385,7 @@ int delete(list** arg_list, const int pos){
                     counter++;
                 }
 
-                list_element *buffer =  iterator->next->next;
+                l_elem *buffer =  iterator->next->next;
                 free(iterator->next->data);
                 free(iterator->next);
 
@@ -339,7 +403,7 @@ int delete(list** arg_list, const int pos){
 }
 
 /**
- * @brief This function will add a new node based on the given index
+ * @brief This function will add a new node based on the given index, and initialize the list if it's NULL
  * 
  * @param arg_list The pointer to the list to be inserted
  * @param value The pointer to the value
@@ -360,10 +424,10 @@ int addIndex(list** arg_list, const data* data, const int pos){
         goto fail;
     }
 
-    if ((*arg_list)== NULL){
+    if ((*arg_list) == NULL){
         //Initialize the list
         *arg_list         = (list*)malloc(sizeof(list));
-        (*arg_list)->root = (list_element*)malloc(sizeof(list_element));
+        (*arg_list)->root = (l_elem*)malloc(sizeof(l_elem));
 
         (*arg_list)->root->data = malloc(data->size);
 
@@ -379,32 +443,32 @@ int addIndex(list** arg_list, const data* data, const int pos){
         (*arg_list)->size = 1;
     }else{
 
-        list_element* new_list_element = (list_element*)malloc(sizeof(list_element));
-        new_list_element->data = malloc(data->size);
-        new_list_element->size = data->size;
-        new_list_element->mode = data->mode;
+        l_elem* new_l_elem = (l_elem*)malloc(sizeof(l_elem));
+        new_l_elem->data = malloc(data->size);
+        new_l_elem->size = data->size;
+        new_l_elem->mode = data->mode;
 
-        if (new_list_element->data)
-            memcpy(new_list_element->data, data->data, data->size);
+        if (new_l_elem->data)
+            memcpy(new_l_elem->data, data->data, data->size);
         else{
-            error_report(4, "addIndex");
+            error_report(addIndex, table[4]);
             goto fail;
         }
 
         if (pos == 0){
-            new_list_element->next = (*arg_list)->root;
-            (*arg_list)->root = new_list_element;
+            new_l_elem->next = (*arg_list)->root;
+            (*arg_list)->root = new_l_elem;
         }else if (pos < 0){
-            list_element *iterator = (*arg_list)->root;
+            l_elem *iterator = (*arg_list)->root;
             while(iterator->next != NULL)
                 iterator = iterator->next;
 
-            iterator->next = new_list_element;
-            new_list_element->next = NULL;
+            iterator->next = new_l_elem;
+            new_l_elem->next = NULL;
         }else{
             int counter = 0;
-            list_element *iterator = (*arg_list)->root;
-            list_element *buffer;
+            l_elem *iterator = (*arg_list)->root;
+            l_elem *buffer;
 
             while (counter != pos && iterator->next != NULL){
                 iterator = iterator->next;
@@ -412,8 +476,8 @@ int addIndex(list** arg_list, const data* data, const int pos){
             }
             
             buffer = iterator->next;
-            iterator->next = new_list_element;
-            new_list_element->next = buffer;
+            iterator->next = new_l_elem;
+            new_l_elem->next = buffer;
         }
         (*arg_list)->size++;
     }
@@ -440,7 +504,7 @@ void print(list **arg_list, const int step){
         return;
     }
     
-    list_element *iterator = (*arg_list)->root;
+    l_elem *iterator = (*arg_list)->root;
     printf("[");
     while (iterator != NULL){
         switch(iterator->mode){
