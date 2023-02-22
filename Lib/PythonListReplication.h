@@ -35,30 +35,15 @@ enum modePool{
     __LONG_DOUBLE__,
     __STRING__,
     __BOOLEAN__,
-    __SHORT_PTR__,
-    __UNSIGNED_SHORT_PTR__,
-    __CHAR_PTR__,
-    __UNSIGNED_CHAR_PTR__,
-    __INT_PTR__,
-    __UNSIGNED_INT_PTR__,
-    __LONG_PTR__,
-    __UNSIGNED_LONG_PTR__,
-    __LONG_LONG_INT_PTR__,
-    __UNSIGNED_LONG_LONG_INTPTR__,
-    __FLOAT_PTR__,
-    __DOUBLE_PTR__,
-    __LONG_DOUBLE_PTR__,
-    __STRING_PTR__,
-    __BOOLEAN_PTR__,    
     __CUSTOM__            
 };
 
 
 #define __MAKE_END NULL
 
-#define MAX_SIZE_BUFFER_SHORT 257
-#define MAX_SIZE_BUFFER_MEDIUM 513
-#define MAX_SIZE_BUFFER_LARGE 1025
+#define MAX_SIZE_BUFFER_SHORT (2 << 8) + 1
+#define MAX_SIZE_BUFFER_MEDIUM (2 << 9) + 1
+#define MAX_SIZE_BUFFER_LARGE (2 << 10) + 1
 
 #define append(list, data) addIndex(list, data, -1)
 #define head(list, data) addIndex(list, data, 0)
@@ -78,12 +63,14 @@ enum modePool{
 #define getLast(list) findIndex(list, -1)
 #define getIndex(list, pos) findIndex(list, pos)
 
+#define sort(list, func) listSort((list->root), func)
+
 #define error_report(func_name, err) fprintf(stderr, "%s: %s", #func_name, err)
 
 //_Generic selection upgraded, credit to Alex Gray from this post:
 //https://stackoverflow.com/questions/9804371/syntax-and-sample-usage-of-generic-in-c11/17290414#17290414
 
-#define dataOf(VAL) _Generic((0,VAL),                                                                                                          \
+#define dataOf(val) _Generic((0,val),                                                                                                          \
         /*This should be compatible with all the variable passing type*/                                                                       \
         _Bool *                 : parseData(sizeof(bool *), VAL, __BOOLEAN__),                                                                 \
         char *                  : parseData(strlen((char *) VAL) + 1, VAL, __STRING__),                                                        \
@@ -104,7 +91,7 @@ enum modePool{
         /*User struct */                                                                                                                       \
         default                 : NULL)
 
-#define dataOf_l(VAL) _Generic((0,VAL),                                                                                                        \
+#define dataOf_l(val) _Generic((0,val),                                                                                                        \
         char*                   : literalStringHandler,                                                                                        \
         char                    : literalCharHandler,                                                                                          \
         int                     : literalIntegerHandler,                                                                                       \
@@ -113,7 +100,7 @@ enum modePool{
         long double             : literalLongDoubleHandler,                                                                                    \
         long int                : literalLongIntHandler,                                                                                       \
         long long int           : literalLongLongIntHandler,                                                                                   \
-        default                 : NULL)(VAL)
+        default                 : NULL)(val)
 
 typedef struct l_elem{
     void*                   data;
@@ -122,19 +109,13 @@ typedef struct l_elem{
     struct l_elem*    next; 
 }l_elem;
 
-typedef struct l_elem_sup_struct{
-    l_elem*                 l_elem;
-    const char*                   struct_name;
-}l_elem_sup_struct;
-
-
 typedef struct data{
     void*                   data;
     size_t                  size;
     int                     mode;
 }data;
 
-typedef struct{
+typedef struct list{
     struct l_elem*    root;
     size_t                  size;
 }list;
@@ -152,16 +133,50 @@ data*                       literalLongIntHandler(long int data);
 data*                       literalDoubleHandler(double data);
 data*                       literalLongLongIntHandler(long long  data);
 
+// INSERTION SECTION 
+
 int                         addIndex(list **list, const data* data, const int pos);
-void                        makeList(list ** list, ...);
-int                         removeIndex(list **list, const int pos);
+
+
+// REVERSAL SECTION
+
 void                        reverseList(list **list);
-data*                       findIndex(list **list, const int pos);
-int                         modifyIndex(list **list, data* data, const int pos);
+
+
+// PRINT SECTION
+
+void                        print(list **list, const int step);
+
+
+// DELETION SECTION
+
+static int                  iterateFunc(l_elem *iterator, const data* data, const int offset);
+int                         delete(list** _list, const int pos);
 void                        clearList(list **list);
 static void                 freeListElement(l_elem *root);
-void                        print(list **list, const int step);
+
+
+// SEARCHING SECTION
+
 int                         findData(list **list, const data* data, const int offset);
-int                         delete(list** _list, const int pos);
-static int                  iterateFunc(l_elem *iterator, const data* data, const int offset);
+data*                       findIndex(list **list, const int pos);
+
+
+// INITILIZATION SECTION
+
+void                        makeList(list ** list, ...);
+
+
+// UTILITY SECTION
+
+list*                       clone(const list* list, const unsigned char isRev); /* Need implement */
+int                         modifyIndex(list **list, data* data, const int pos);
+int                         count(list** list, data* data); /* Need implement */
+
+
+// SORTING SECTION
+
+void                        listSort(l_elem **list,  int (*cmp)(const data *, const data *));
+static                      l_elem* merge(l_elem* hLeft, l_elem* hRight, int (*cmp)(const data *, const data *));
+static void                 splitHalf(l_elem *root, l_elem** hLeft, l_elem** hRight);
 #endif

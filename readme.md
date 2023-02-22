@@ -37,6 +37,7 @@ and want to experience the same type of data structure in Python while coding C.
 - Integrated print function
 - Reversal
 - Auto-type detect using generic selection
+- Sorting
 ```
 
 

@@ -16,12 +16,13 @@
 #include <dirent.h>
 #include <time.h>
 #include ".\PythonListReplication.h"
+#include "PythonListReplication.h"
 
 
 
 const char *table[] = {
     "Data parameter is null!",
-    "Invalid mode, value either negative or exceeded 12!",
+    "Invalid mode, value either negative or exceeded 29!",
     "Invalid offset, offset value larger than the size of list!",
     "List is clear, try to add more elements!",
     "Failed to allocate memory!",
@@ -76,6 +77,107 @@ data* literalLongLongIntHandler(long long data){
 }
 
 /**
+ * @brief This funciton will make a clone of the list
+ * 
+ * @param arg_list the given list to be duplicate
+ * @param isRev    option to reverse the copied list. Positives for yes, 0 for no
+ * 
+ * @return list* the pointer to the duplicated list
+ */
+list* clone(const list* arg_list, const unsigned char isRev){
+    if (arg_list == NULL){
+        error_report(modifyIndex, table[0]);
+        return NULL;
+    }
+
+    list* ret = malloc(sizeof(list));
+
+    l_elem* iterator = arg_list->root;
+
+    while (iterator != NULL){
+        head(&ret, parseData(iterator->size, iterator->data, iterator->mode));
+        iterator = iterator->next;
+    }
+    
+    !isRev ? reverseList(&ret) : ret ;
+
+    return ret; 
+}
+
+
+/**
+ * @brief Implementing merge sort for linked list, credit to geeksforgeeks 
+ * https://www.geeksforgeeks.org/merge-sort-for-linked-list/
+ * 
+ * @param arg_list The list to be sorted
+ * @param cmp The cmp function. If left NULL, all value within the list will converted to char* data type and sorted using strcmp method
+ */
+void listSort(l_elem **arg_list, int (*cmp)(const data*, const data*)){
+    l_elem* root = *arg_list;
+    l_elem* hLeft, *hRight;
+    //Base case 
+    if ((root) == NULL || (root->next) == NULL)
+        return;
+    
+    //Split up the left and right
+    splitHalf(root, &hLeft, &hRight);
+
+    //Redo for both halves
+    listSort(&hLeft, cmp);
+    listSort(&hRight, cmp);
+
+    //Merge up the array
+    *arg_list = merge(hLeft, hRight, cmp);
+}
+
+static l_elem* merge(l_elem* hLeft, l_elem* hRight, int (*cmp)(const data *, const data *)){
+    l_elem* res = NULL;
+
+    if (hLeft == NULL)
+        return hRight;
+    else if (hRight == NULL)
+        return hLeft;
+
+    #define SAFE_GUARD MAX_SIZE_BUFFER_SHORT
+    //strmp is unsafe as the value might not be a proper string, in that case, the guard will ensure the program will not crash only, but not sorted in right order
+    int cmpRes;
+
+    if (cmp == NULL){
+        
+    }
+
+    #undef SAFE_GUARD
+    if (cmp((data*)hLeft, (data*)hRight) <= 0){
+        res = hLeft;
+        res->next = merge(hLeft->next, hRight, cmp);
+    }else{
+        res = hRight;
+        res->next = merge(hLeft, hRight->next, cmp);
+    }
+
+    return res;
+}
+
+static void splitHalf(l_elem *root, l_elem** hLeft, l_elem** hRight){
+    //Using tortoise and hare method
+    l_elem* tortoise = root;
+    l_elem* hare     = root->next;
+
+    while (hare != NULL){
+        hare = hare->next;
+        if (hare != NULL){
+            hare = hare->next;
+            tortoise = tortoise->next;
+        }
+    }
+
+    //Here, the hare should point to NULL, aka the end of the list, whilst the tortoise should be pointing to the half of the list
+    *hLeft = root;
+    *hRight = tortoise->next;
+    tortoise->next = NULL; //Cut off the list in half
+}
+
+/**
  * @brief This function will modify the content of the list at a given index
  * 
  * @param arg_list The pointer to the given list
@@ -110,7 +212,8 @@ void reverseList(list **arg_list){
  * @param pos The position to replace, put negative value for end of the list
  * @return int return 0 upon success, else 1 is return 
  */
-int modifyIndex(list **arg_list, data* data, const int pos){
+int modifyIndex(list **arg_list, data *data, const int pos)
+{
     if (data == NULL){
         error_report(modifyIndex, table[0]);
         goto fail;
@@ -150,8 +253,7 @@ int modifyIndex(list **arg_list, data* data, const int pos){
     return EXIT_SUCCESS;
     fail:
     return EXIT_FAILURE;
-
-}
+    }
 /**
  * @brief This function is a complement for the clearList function, clear the root in detail
  * 
@@ -293,13 +395,14 @@ data* parseData(const int size, void* content, const int mode){
 
     data* ret = (data*)malloc(sizeof(data));
     
-    ret->size = size;
-    ret->data = malloc(sizeof(size));
+    //Offseting size + 1 as the original size doesn't contain the null terminator
+    ret->size = size + 1;
+    ret->data = malloc(size + 1);
 
     if(ret->data)
-        memcpy(ret->data, content, size);
+        memcpy(ret->data, content, size + 1);
     else{
-        error_report(4, "parseData");
+        error_report(parseData, table[4]);
         goto fail;
     }
     
@@ -414,7 +517,6 @@ int delete(list** arg_list, const int pos){
  */
 int addIndex(list** arg_list, const data* data, const int pos){
     if (data->mode < 0 || data->mode > TOTAL_MODE){
-        printf("what ? %d\n", data->mode);
         error_report(addIndex, table[1]);
         goto fail;
     }
