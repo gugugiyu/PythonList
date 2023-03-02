@@ -13,21 +13,18 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <dirent.h>
 #include <time.h>
 #include ".\PythonListReplication.h"
-#include "PythonListReplication.h"
+#include ".\PythonTupleReplication.h"
 
-
-
-const char *table[] = {
-    "Data parameter is null!",
-    "Invalid mode, value either negative or exceeded 29!",
-    "Invalid offset, offset value larger than the size of list!",
-    "List is clear, try to add more elements!",
-    "Failed to allocate memory!",
-    "Invalid step, step musn't be 0!",
-    "Warning: The list has no element, most function don't work on a clear list!"
+extern const char *table[] = {
+    "Data parameter is null!\n",
+    "Invalid mode, value either negative or exceeded 29!\n",
+    "Invalid offset, offset value larger than the size of list!\n",
+    "List is clear, try to add more elements!\n",
+    "Failed to allocate memory!\n",
+    "Invalid step, step musn't be 0!\n",
+    "Warning: The list has no element, most function don't work on a clear list\n"
 };
 
 data* literalIntegerHandler(int data){
@@ -259,7 +256,7 @@ int modifyIndex(list **arg_list, data *data, const int pos)
  * 
  * @param root The root passed by the clearList function
  */
-void freeListElement(l_elem *root){
+static void freeListElement(l_elem *root){
     l_elem *iterator;
     
     while (root != NULL){
@@ -271,6 +268,53 @@ void freeListElement(l_elem *root){
     }
     root = NULL;
 }
+
+/**
+ * @brief This function will count the occurence of data within the given list
+ * 
+ * @param arg_list The list to be counted
+ * @param data The data which use for checking
+ * @return int Return the number of occurence when success, else -1 is returned
+ */
+size_t count(list** arg_list, data* data){
+    if (data == NULL){
+        error_report(findData, table[0]);
+        goto fail;
+    }
+    
+    if (data->mode < 0 || data->mode > TOTAL_PRIMITIVE_MODE){
+        error_report(findData, table[0]);
+        goto fail;
+    }
+
+    l_elem *iterator = (*arg_list)->root;
+    
+    size_t counter = 0;
+
+    while (iterator != NULL){
+        if (iterator->mode == data->mode){
+            if (data->mode == __CUSTOM__)
+                continue;
+
+            if (data->mode == __STRING__){
+                if (!strcmp((char*)data->data, (char*)iterator->data))
+                    return counter;
+            }else{
+                int ret = memcmp(data->data, iterator->data, iterator->size - 1);
+                
+                if (!ret){
+                    counter++;
+                }
+            }
+        }
+        iterator = iterator->next;
+    }
+
+    return counter;
+    fail:
+    return (size_t)-1;
+}
+
 /**
  * @brief This function will find the index of a given data structure which is inputted through arguments
  * 
@@ -285,7 +329,7 @@ int findData(list ** arg_list, const data* data, const int offset){
         goto fail;
     }
     
-    if (data->mode < 0 || data->mode > TOTAL_MODE){
+    if (data->mode < 0 || data->mode > TOTAL_PRIMITIVE_MODE){
         error_report(findData, table[0]);
         goto fail;
     }
@@ -322,7 +366,7 @@ static int iterateFunc(l_elem *iterator, const data* data, const int offset){
                 if (!strcmp((char*)data->data, (char*)iterator->data))
                     return counter;
             }else{
-                int ret = memcmp(data->data, iterator->data, iterator->size);
+                int ret = memcmp(data->data, iterator->data, iterator->size - 1);
 
                 if (!ret)
                     return counter;
@@ -383,7 +427,7 @@ data* findIndex(list** arg_list, const int pos){
  * @return data* On sucess, the pointer to this data structure will be returned, else NULL will be returned
  */
 data* parseData(const int size, void* content, const int mode){
-    if (mode < 0 || mode > TOTAL_MODE){
+    if (mode < 0 || mode > TOTAL_PRIMITIVE_MODE){
         error_report(parseData, table[1]);
         goto fail;
     }
@@ -395,7 +439,7 @@ data* parseData(const int size, void* content, const int mode){
 
     data* ret = (data*)malloc(sizeof(data));
     
-    //Offseting size + 1 as the original size doesn't contain the null terminator
+    //Offseting size + 1 as the original size doesn't contain the null terminator for string value
     ret->size = size + 1;
     ret->data = malloc(size + 1);
 
@@ -409,7 +453,6 @@ data* parseData(const int size, void* content, const int mode){
     ret->mode = mode;
 
     return ret;
-
     fail:
     return NULL;
 }
@@ -456,9 +499,9 @@ void clearList(list **arg_list){
  * @return int On success, the function returns 0, else 1 will be returned
  */
 
-int delete(list** arg_list, const int pos){
+int deletePos(list** arg_list, const int pos){
     if (*arg_list == NULL){
-        error_report(0, "delete");
+        error_report(deletePos, table[0]);
         goto fail;
     }else{
         l_elem* iterator = (*arg_list)->root;
@@ -508,7 +551,7 @@ int delete(list** arg_list, const int pos){
 /**
  * @brief This function will add a new node based on the given index, and initialize the list if it's NULL
  * 
- * @param arg_list The pointer to the list to be inserted
+ * @param arg_list The pointer to the list to be inserted           
  * @param value The pointer to the value
  * @param size The size of the value
  * @param pos The position to be added, input negative value to add at the end
@@ -516,7 +559,7 @@ int delete(list** arg_list, const int pos){
  * @return int On success, 0 will be returned, else 1 will be returned if error
  */
 int addIndex(list** arg_list, const data* data, const int pos){
-    if (data->mode < 0 || data->mode > TOTAL_MODE){
+ if (data->mode < 0 || data->mode > TOTAL_PRIMITIVE_MODE){
         error_report(addIndex, table[1]);
         goto fail;
     }
@@ -536,7 +579,7 @@ int addIndex(list** arg_list, const data* data, const int pos){
         if ((*arg_list)->root->data)
             memcpy((*arg_list)->root->data, data->data, data->size);
         else{
-            error_report(4, "addIndex");
+            error_report(addIndex, table[4]);
             goto fail;
         }
         (*arg_list)->root->size = data->size;
@@ -609,52 +652,8 @@ void print(list **arg_list, const int step){
     l_elem *iterator = (*arg_list)->root;
     printf("[");
     while (iterator != NULL){
-        switch(iterator->mode){
-            case __SHORT__:
-                printf("%i", *((short*)iterator->data));
-                break;
-            case __UNSIGNED_SHORT__:
-                printf("%i", *((unsigned short*)iterator->data));
-                break;
-            case __CHAR__:
-                printf("%c", *((char*)iterator->data));
-                break;
-            case __UNSIGNED_CHAR__:
-                printf("%c", *((unsigned char*)iterator->data));
-                break;
-            case __INT__:
-                printf("%d", *((int*)iterator->data));
-                break;
-            case __UNSIGNED_INT__:
-                printf("%lu", *((unsigned int*)iterator->data));
-                break;
-            case __LONG__:
-                printf("%li", *((long*)iterator->data));
-                break;
-            case __UNSIGNED_LONG__:
-                printf("%lu", *((unsigned long*)iterator->data));
-                break;
-            case __FLOAT__:
-                printf("%g", *((float*)iterator->data));
-                break;
-            case __DOUBLE__:
-                printf("%g", *((double*)iterator->data));
-                break;
-            case __LONG_DOUBLE__:
-                printf("%Lf", *((long double*)iterator->data));
-                break;
-            case __STRING__:
-                printf("%s", ((char*)iterator->data));
-                break;
-            case __BOOLEAN__:
-                printf("%s", *((bool *)iterator->data) == true ? "true" : "false");
-                break;
-            case __CUSTOM__:
-                printf("CUSTOM");
-                break;
-            default:
-                printf("ERROR");
-        }
+
+        singlePrint(iterator->mode, iterator->data);
 
         for (int i = 0; i < step; i++){
             if (iterator->next == NULL){
@@ -669,4 +668,71 @@ void print(list **arg_list, const int step){
             printf(", ");
     }
     printf("]\n");
+}
+
+void singlePrint(primitiveModePool mode, const void* const data){
+    switch(mode){
+            case __SHORT__:
+                printf("%i", *((short*)data));
+                break;
+            case __UNSIGNED_SHORT__:
+                printf("%i", *((unsigned short*)data));
+                break;
+            case __CHAR__:
+                printf("%c", *((char*)data));
+                break;
+            case __UNSIGNED_CHAR__:
+                printf("%c", *((unsigned char*)data));
+                break;
+            case __INT__:
+                printf("%d", *((int*)data));
+                break;
+            case __UNSIGNED_INT__:
+                printf("%lu", *((unsigned int*)data));
+                break;
+            case __LONG__:
+                printf("%li", *((long*)data));
+                break;
+            case __UNSIGNED_LONG__:
+                printf("%lu", *((unsigned long*)data));
+                break;
+            case __LONG_LONG_INT__:
+                printf("%lld", *((long long*)data));
+                break;
+            case __UNSIGNED_LONG_LONG_INT__:
+                printf("%llu", *((unsigned long long*)data));
+                break;
+            case __FLOAT__:
+                printf("%g", *((float*)data));
+                break;
+            case __DOUBLE__:
+                printf("%g", *((double*)data));
+                break;
+            case __LONG_DOUBLE__:
+                printf("%Lf", *((long double*)data));
+                break;
+            case __STRING__:
+                printf("%s", ((char*)data));
+                break;
+            case __BOOLEAN__:
+                printf("%s", *((bool *)data) == true ? "true" : "false");
+                break;
+            case __TUPLE__:
+                printf("(");
+
+                for (size_t i = 0; i < ((tuple*)data)->size; i++){
+                    singlePrint(((tuple*)data)->dataPool[i]->mode, ((tuple*)data)->dataPool[i]->data);
+
+                    if (i < ((tuple*)data)->size - 1)
+                        printf(", ");
+                }
+
+                printf(")");
+                break;
+            case __CUSTOM__:
+                printf("CUSTOM");
+                break;
+            default:
+                printf("ERROR");
+        }
 }
